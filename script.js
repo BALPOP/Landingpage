@@ -37,20 +37,44 @@ function getUtmParameters() {
   return utmParams;
 }
 
+/*
+  Function: buildTrackedUrl
+  Purpose: Builds destination URL with inherited parameters from the current page
+           Preserves existing destination URL parameters (ch, fbPixelId) and adds tracking parameters
+  
+  Inputs:
+  - baseUrl: The destination URL with existing parameters
+  - sourceParams: URLSearchParams object from the current page
+  
+  Returns: Complete URL string with all parameters merged
+  
+  External APIs used:
+  - URL and URLSearchParams (Web APIs): parse and construct URLs with parameters
+*/
 function buildTrackedUrl(baseUrl, sourceParams) {
   const allowedParams = [
     'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-    'fbclid', 'gclid'
+    'fbclid', 'gclid', 'ch', 'fbPixelId'
   ];
-  const url = new URL(baseUrl, window.location.origin);
+  
+  // Create URL object which automatically preserves existing parameters
+  const url = new URL(baseUrl);
+  
+  // Add allowed parameters from the source page
   for (const key of allowedParams) {
-    if (sourceParams.has(key)) url.searchParams.set(key, sourceParams.get(key) || '');
+    if (sourceParams.has(key)) {
+      // Only add if not already present in destination URL (preserves destination URL priority)
+      if (!url.searchParams.has(key)) {
+        url.searchParams.set(key, sourceParams.get(key) || '');
+      }
+    }
   }
+  
   return url.toString();
 }
 
 function applyCtaUrl() {
-  const DESTINATION_URL = 'https://example.com'; // replace later
+  const DESTINATION_URL = 'https://x9a8rje.com?ch=6825&fbPixelId=1032961382302053';
   const cta = document.getElementById('primary-cta');
   if (!cta) return;
   const params = new URLSearchParams(window.location.search);
