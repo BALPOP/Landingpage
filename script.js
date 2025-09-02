@@ -5,10 +5,37 @@
   - Appends query parameters (e.g., UTM/fbclid) from the current URL to the CTA link.
   - Manages countdown timer starting from 24:00:00.
   - Controls image carousel with auto-rotation and manual controls.
+  - Tracks UTM parameters with Meta Pixel for traffic source segmentation.
 
   External APIs used:
   - URL and URLSearchParams (Web APIs): parse and construct URLs.
+  - fbq (Meta Pixel): Facebook pixel tracking function for conversion events.
 */
+
+/*
+  Function: getUtmParameters
+  Purpose: Extracts UTM parameters from the current URL for Meta Pixel tracking
+  
+  Returns: Object containing UTM parameters (utm_source, utm_medium, utm_campaign, etc.)
+  
+  External APIs used:
+  - URLSearchParams (Web API): parse URL query parameters
+*/
+function getUtmParameters() {
+  const params = new URLSearchParams(window.location.search);
+  const utmParams = {};
+  
+  // Standard UTM parameters
+  const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+  
+  utmKeys.forEach(key => {
+    if (params.has(key)) {
+      utmParams[key] = params.get(key);
+    }
+  });
+  
+  return utmParams;
+}
 
 function buildTrackedUrl(baseUrl, sourceParams) {
   const allowedParams = [
@@ -29,6 +56,43 @@ function applyCtaUrl() {
   const params = new URLSearchParams(window.location.search);
   const tracked = buildTrackedUrl(DESTINATION_URL, params);
   cta.setAttribute('href', tracked);
+}
+
+/*
+  Function: setupMetaPixelTracking
+  Purpose: Sets up Meta Pixel AddToCart event tracking for the primary CTA button
+           Includes UTM parameters for traffic source segmentation
+  
+  External APIs used:
+  - fbq (Meta Pixel): Facebook pixel tracking function for conversion events
+*/
+function setupMetaPixelTracking() {
+  const cta = document.getElementById('primary-cta');
+  if (!cta) return;
+  
+  // Add click event listener to track AddToCart event
+  cta.addEventListener('click', function(event) {
+    // Check if fbq (Facebook Pixel) is available
+    if (typeof fbq !== 'undefined') {
+      // Get UTM parameters for traffic source tracking
+      const utmParams = getUtmParameters();
+      
+      // Build event data with UTM parameters
+      const eventData = {
+        content_name: 'PopDez Bonus Exclusivo',
+        content_category: 'Gaming Bonus',
+        currency: 'BRL',
+        ...utmParams // Spread UTM parameters into the event data
+      };
+      
+      // Track AddToCart event when the main CTA button is clicked
+      fbq('track', 'AddToCart', eventData);
+      
+      console.log('Meta Pixel: AddToCart event tracked with UTM parameters:', eventData);
+    } else {
+      console.warn('Meta Pixel (fbq) not available');
+    }
+  });
 }
 
 function startCountdown() {
@@ -160,6 +224,7 @@ function initCarousel() {
 
 function init() {
   applyCtaUrl();
+  setupMetaPixelTracking();
   startCountdown();
   initCarousel();
 }
